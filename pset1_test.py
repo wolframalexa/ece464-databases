@@ -1,12 +1,11 @@
-from sqlalchemy import func
+from sqlalchemy import func, create_engine
+from sqlalchemy.orm import sessionmaker
 from sailors import Sailor, Reserve, Boat
 
 engine = create_engine("mysql://alexa@localhost/sailors", echo=True, future=True)
 
-with Session(engine) as session
-	result = session.execute(text("select 'hello world'"))
-	print(result.all())
-
+Session = sessionmaker(bind = engine)
+session = Session()
 
 
 def q1():
@@ -20,6 +19,7 @@ def q1():
 	(105, "Marine", 7),
 	(112, "Sooney", 2)
 
+	session = Session(engine)
 	s1 = session.query(Reserve.bid, Boat.bname, func.count(Reserve.bid)).join(Reserve, Boat.bid == Reserve.bid).group_by(Boat.bname).all()
 	print(s1)
 
@@ -152,3 +152,11 @@ def q8():
 	session.commit()
 
 
+q1()
+q2()
+q3()
+q4()
+q5()
+q6()
+q7()
+q8()
