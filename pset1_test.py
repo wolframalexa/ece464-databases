@@ -1,4 +1,4 @@
-from sqlalchemy import func, create_engine, union_all, select
+from sqlalchemy import func, create_engine, union_all
 from sqlalchemy.orm import sessionmaker
 from sailors import Sailor, Reservation, Boat
 
