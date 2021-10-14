@@ -97,9 +97,9 @@ insert into boats values (111,'Sooney','green', 28);
 insert into boats values (112,'Sooney','red', 28);
 
 
-insert into expenses values (13, 2, 41, 1998-06-08, 137.45)
-insert into expenses values (16, 4, 32, 1990-06-14, 10000)
-insert into expenses values (44, 1, 45, 1998-06-14, 800)
-insert into expenses values (20, 0, 2, 1995-07-26, 1000)
-insert into expenses values (45, 1, 45, 1998-06-21, 800)
-insert into expenses values (66, 5, 21, 2001-02-02, 1456.73)
+insert into expenses values (13, 2, 41, '1998/06/08', 137.45);
+insert into expenses values (16, 4, 32, '1990/06/14', 10000);
+insert into expenses values (44, 1, 45, '1998/06/14', 800);
+insert into expenses values (20, 0, 2, '1995/07/26', 1000);
+insert into expenses values (45, 1, 45, '1998/06/21', 800);
+insert into expenses values (66, 5, 21, '2001/02/02', 1456.73);

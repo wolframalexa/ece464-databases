@@ -1,14 +1,14 @@
 from sqlalchemy import func, create_engine
 from sqlalchemy.orm import sessionmaker
-from sailors import Sailor, Reserve, Boat
+from sailors import Sailor, Reservation, Boat
 
-engine = create_engine("mysql://alexa@localhost/sailors", echo=True, future=True)
+engine = create_engine("mysql+pymysql://alexa:Hello123%21%40%23@localhost:1345/sailors")
 
 Session = sessionmaker(bind = engine)
 session = Session()
 
 
-def q1():
+def q1(session):
 	# first query
 
 	expected = [ # bid | bname | count(reserves.bid)
@@ -17,13 +17,13 @@ def q1():
 	(101, "Interlake", 5),
 	(110, "Klapser", 3),
 	(105, "Marine", 7),
-	(112, "Sooney", 2)
+	(112, "Sooney", 2)]
 
-	session = Session(engine)
-	s1 = session.query(Reserve.bid, Boat.bname, func.count(Reserve.bid)).join(Reserve, Boat.bid == Reserve.bid).group_by(Boat.bname).all()
+	result = session.query(Reservation.bid, Boat.bname, func.count(Reservation.bid)).\
+		join(Reservation, Boat.bid == Reservation.bid).group_by(Boat.bname).all()
 	print(s1)
 
-	for expected, result in zip (expected, s1):
+	for expected, result in zip (expected, result):
 		assert expected == result
 	session.commit()
 
@@ -52,9 +52,10 @@ def q3():
 
 
 	sailors_not_red = session.query(Sailor.sid).join(Reserve, Sailor.sid == Reserve.sid).join(Reserve, Boat.bid == Reserve.bid).filter(Boat.color != "red").group_by(Sailor.sid).subquery()
-	sailors_reserves = session.query(Sailor.sid).join(Reserve, Sailor.sid = Reserve.sid).distinct().subquery()
-	sailors_no_reserves = session.query(Sailor.sid).filter(Sailor.sid.notin_(sailors_reserves)).distinct()
 
+	sailors_reserves = session.query(Sailor.sid).join(Reservation, Sailor.sid == Reservation.sid).distinct().subquery()
+
+	sailors_no_reserves = session.query(Sailor.sid).filter(Sailor.sid.notin_(sailors_reserves)).distinct()
 	sailors_only_not_red = union_all(sailors_not_red, sailors_no_reserves).distinct().subquery()
 	sailors_only_red = session.query(Sailor.sid, Sailor.sname).filter(Sailor.sid.notin_(sailors_only_not_red)).all()
 
@@ -69,9 +70,8 @@ def q4():
 	(101, Interlake, 5)
 	]
 
-        bid_count = session.query(func.count(Reserve.bid)).subquery
-	max_reserves_boat = session.query(Boat.bid, Boat.bname, func.max(bid_count)).join(Boat, Reserve.bid = Boat.bid).group_by(Reserve.bid)
-
+	bid_count = session.query(func.count(Reserve.bid)).subquery
+	max_reserves_boat = session.query(Boat.bid, Boat.bname, func.max(bid_count)).join(Boat, Reserve.bid == Boat.bid).group_by(Reserve.bid)
 
 	for expected, sailors_only_red in zip(expected, sailors_only_red):
 		assert expected == sailors_only_red
@@ -145,14 +145,14 @@ def q8():
 	]
 
 	bid_count = session.query(Reserve.bid, Reserve.sid, func.count(Reserve.bid)).subquery().group_by(Reserve.bid, Reserve.sid).order_by(Reserve.bid)
-	most_reserves = session.query(Reserve.bid, Reserve.sid, func.max(bid_count)
+	most_reserves = session.query(Reserve.bid, Reserve.sid, func.max(bid_count))
 
 	for expected, most_reserves in zip(expected, most_reserves):
 		assert expected == most_reserves
 	session.commit()
 
 
-q1()
+q1(session)
 q2()
 q3()
 q4()

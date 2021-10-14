@@ -6,13 +6,13 @@ from __future__ import print_function
 from ipdb import set_trace
 
 from sqlalchemy import create_engine
-engine = create_engine(
-      "mysql+pymysql://eugene:@localhost/sailors?host=localhost?port=3306", echo=True)
+#engine = create_engine(
+#      "mysql+pymysql://eugene:@localhost/sailors?host=localhost?port=3306", echo=True)
 
-conn = engine.connect()
-print(conn.execute("SELECT * from sailors").fetchall())
+#conn = engine.connect()
+#print(conn.execute("SELECT * from sailors").fetchall())
 
-set_trace()
+#set_trace()
 
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Integer, String, Column, DateTime
@@ -29,39 +29,39 @@ class Sailor(Base):
     def __repr__(self):
         return "<Sailor(id=%s, name='%s', rating=%s)>" % (self.sid, self.sname, self.age)
 
-tmp = Sailor(sid=98, sname='joe', rating=7, age=25)
-print(tmp)
+#tmp = Sailor(sid=98, sname='joe', rating=7, age=25)
+#print(tmp)
 
-from sqlalchemy.orm import sessionmaker
-session = sessionmaker(bind=engine)
-s = session()
+#from sqlalchemy.orm import sessionmaker
+#session = sessionmaker(bind=engine)
+#s = session()
 
-s.add(tmp)
+#s.add(tmp)
 
-set_trace()  # joe is "pending"
+#set_trace()  # joe is "pending"
 
-s.commit()
+#s.commit()
 
-set_trace()
+#set_trace()
 
-tmp.rating = 8
-print('session is dirty?', s.dirty)
+#tmp.rating = 8
+#print('session is dirty?', s.dirty)
 
-set_trace()
+#set_trace()
 
-s.commit()
+#s.commit()
 
-set_trace()
+#set_trace()
 
-sailors = s.query(Sailor)
-print(type(sailors), sailors)
+#sailors = s.query(Sailor)
+#print(type(sailors), sailors)
+#
+#set_trace()
 
-set_trace()
+#for i in sailors:
+ #   print(i)
 
-for i in sailors:
-    print(i)
-
-set_trace()
+#set_trace()
 
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import backref, relationship
@@ -95,8 +95,8 @@ class Reservation(Base):
     def __repr__(self):
         return "<Reservation(sid=%s, bid=%s, day=%s)>" % (self.sid, self.bid, self.day)
 
-for i in s.query(Reservation):
-    print(i)
+#for i in s.query(Reservation):
+#    print(i)
 
-set_trace()
+#set_trace()
 
