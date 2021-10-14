@@ -51,14 +51,12 @@ def q3():
 
 
 	sailors_not_red = session.query(Sailor.sid).join(Reservation, Sailor.sid == Reservation.sid).join(Boat, Reservation.bid == Boat.bid).filter(Boat.color != "red").group_by(Sailor.sid)
-	print(sailors_not_red)
 
 	sailors_reserves = session.query(Sailor.sid).join(Reservation, Sailor.sid == Reservation.sid).distinct().subquery()
-	print(sailors_reserves)
-	sailors_no_reserves = session.query(Sailor.sid).filter(Sailor.sid.notin_(sailors_reserves)).distinct()
-	print(sailors_no_reserves)
 
-	sailors_only_not_red = sailors_not_red.union(sailors_no_reserves).distinct().subquery()
+	sailors_no_reserves = session.query(Sailor.sid).filter(Sailor.sid.notin_(sailors_reserves)).distinct()
+
+	sailors_only_not_red = sailors_not_red.union_all(sailors_no_reserves).distinct().subquery()
 	sailors_only_red = session.query(Sailor.sid, Sailor.sname).filter(Sailor.sid.notin_(sailors_only_not_red)).all()
 
 	for expected, sailors_only_red in zip(expected, sailors_only_red):
@@ -92,7 +90,7 @@ def q5():
 	]
 
 
-	reserved_red = session.query(Sailor.sid).join(Sailor, Reservation.sid == Sailor.sid).join(Reservation, Boat.bid == Reservation.bid).filter(Boat.color == "red").distinct()
+	reserved_red = session.query(Reservation.sid).join(Boat, Reservation.bid == Boat.bid).filter(Boat.color == "red").distinct()
 	never_reserved_red = session.query(Sailor.sid, Sailor.sname).filter(Sailor.sid.not_in(reserved_red))
 
 	for expected, never_reserved_red in zip(expected, never_reserved_red):
@@ -153,9 +151,9 @@ def q8():
 
 q1()
 q2()
-#q3()
+q3()
 q4()
-#q5() there is a broader issue with the "not in" syntax
+q5()
 q6()
 q7()
 q8()
