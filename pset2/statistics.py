@@ -63,7 +63,6 @@ for i in range(0, len(numbers_rg)):
 	num = num.replace("-","NaN")
 	numbers_rg[i] = float(num.replace(',',''))
 
-print(numbers_rg)
 for i in range(0, len(industries_rg)):
 	industries_rg[i] = industries_rg[i].get_text()
 
@@ -71,5 +70,24 @@ for i in range(0, len(industries_rg)):
 for i in range(0, len(industries_rg)):
 	out = industries_rg[i] + " " + str(numbers_rg[i*6:i*6+5]) + "\n"
 	f.write(out)
+
+##########
+# SALARY #
+##########
+
+f = open("salary_table.txt", "w")
+salary_data = requests.get(url = "https://www.bls.gov/oes/current/oes_nat.htm").text
+
+salary_soup = bs(salary_data, 'html.parser')
+
+occupations = salary_soup.find_all("tr")
+salary_data = []
+for i in range(0, len(occupations)):
+	temp = occupations[i].find_all("td")
+	for j in range(0, len(temp)):
+		temp[j] = temp[j].get_text()
+	salary_data.append(temp)
+
+print(salary_data)
 
 f.close()
