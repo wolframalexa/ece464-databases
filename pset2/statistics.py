@@ -15,19 +15,21 @@ f = open("union_table.txt", "w")
 union_data = requests.get(url = 'https://www.bls.gov/news.release/union2.t03.htm').text
 
 # parse: turn results into table with industry and numbers
-soup = bs(union_data)
+soup = bs(union_data, "html.parser")
 
 # find industries & numbers
 sep = soup.find("p", string="INDUSTRY")
 
-industries = sep.find_all_next("p", ["sub1", "sub2"])
+industries = sep.find_all_next("p", ["sub0", "sub1", "sub2","sub3"])
 
 # remove tags
 for i in range(len(industries)):
 	industries[i] = industries[i].get_text()
 
-# TODO: only pick datavalues related to sub1 and sub2 industry tags
 numbers = sep.find_all_next("span", "datavalue")
+
+# not sure if this will work, could also remove manually
+#industries.find_all_parents().find_all_siblings("span", "datavalue")
 
 # remove tags and turn into floats
 for i in range(0, len(numbers)):
@@ -38,17 +40,36 @@ for i in range(0, len(numbers)):
 for i in range(0, len(industries)):
 	out = industries[i] + " " + str(numbers[i*10:i*10+9]) + "\n"
 	f.write(out)
+f.close()
 
 #################
 # RACE & GENDER #
 #################
+# open file
+f = open("race_gender_table.txt", "w")
+
 # open race and gender makeup page
-#browser.get("https://www.bls.gov/cps/cpsaat18.htm")
+race_gender_data = requests.get(url = "https://www.bls.gov/cps/cpsaat18.htm").text
 
 # read table
-#rows = browser.find_elements_by_xpath("html/body/div/table/tbody/tr")
-#print(rows)
+rg_soup = bs(race_gender_data, 'html.parser')
+industries_rg = rg_soup.find_all("p", ["sub0", "sub1", "sub2", "sub3"])
 
+numbers_rg = rg_soup.find_all("span", "datavalue")
 
+# remove tags, turn into floats, turn into NaNs where applicable
+for i in range(0, len(numbers_rg)):
+	num = numbers_rg[i].get_text()
+	num = num.replace("-","NaN")
+	numbers_rg[i] = float(num.replace(',',''))
+
+print(numbers_rg)
+for i in range(0, len(industries_rg)):
+	industries_rg[i] = industries_rg[i].get_text()
+
+# remove text tags and write to file
+for i in range(0, len(industries_rg)):
+	out = industries_rg[i] + " " + str(numbers_rg[i*6:i*6+5]) + "\n"
+	f.write(out)
 
 f.close()
