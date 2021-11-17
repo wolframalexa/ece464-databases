@@ -4,12 +4,12 @@ import requests
 import math
 from bs4 import BeautifulSoup as bs
 
+# get data from webpages using scraping
 
 ####################
 # UNION MEMBERSHIP #
 ####################
-
-f = open("union_table.txt", "w")
+print("Scraping data...")
 
 # read table
 union_data = requests.get(url = 'https://www.bls.gov/news.release/union2.t03.htm').text
@@ -38,14 +38,10 @@ union_data = []
 for i in range(0, len(industries_u)):
 	out = industries_u[i] + " " + str(numbers[i*10:(i+1)*10]) + "\n"
 	union_data.append(numbers[i*10:(i+1)*10])
-	f.write(out)
-f.close()
 
 #################
 # RACE & GENDER #
 #################
-# open file
-f = open("race_gender_table.txt", "w")
 
 # open race and gender makeup page
 race_gender_data = requests.get(url = "https://www.bls.gov/cps/cpsaat18.htm").text
@@ -74,13 +70,11 @@ rg_data = []
 for i in range(0, len(industries_rg)):
 	out = industries_rg[i] + " " + str(numbers_rg[i*6:(i+1)*6]) + "\n"
 	rg_data.append(numbers_rg[i*6:(i+1)*6])
-	f.write(out)
 
 ##########
 # SALARY #
 ##########
 
-f = open("salary_table.txt", "w")
 salary_data = requests.get(url = "https://www.bls.gov/oes/current/oes_nat.htm").text
 
 salary_soup = bs(salary_data, 'html.parser')
@@ -91,10 +85,10 @@ data = body.find_all("tr")
 salary_data = []
 
 # extract datapoints & clean data of tags
-# TODO: clean of $, , and %
 for i in range(0, len(data)):
 	tmp = data[i].find_all("td")
 
+	# clean of extraneous characters, handle NULLs
 	for j in range(0, len(tmp)):
 		value = tmp[j].get_text()
 		value = value.replace('$','')
@@ -105,18 +99,16 @@ for i in range(0, len(data)):
 		tmp[j] = value
 
 	salary_data.append(tmp)
-#	f.write(temp)
-print(salary_data[0:3])
-f.close()
 
+print("Scraping done! Now creating tables")
 
 #################
 # CREATE TABLES #
 #################
+
 from sqlalchemy import func, create_engine, insert
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import Table, Column, Integer, String, MetaData, Float
-import uuid
 
 engine = create_engine('mysql+pymysql://alexa:Hello123%21%40%23@localhost:3306/pset2')
 Session = sessionmaker(bind=engine)
@@ -141,15 +133,14 @@ union_industries = Table(
 	Column('union_rep_percent_20', Float),
 )
 
-#union_industries.create(engine, checkfirst=True) # don't recreate table if already exists
-
-#for i in range(0, len(industries_u)):
+union_industries.create(engine, checkfirst=True) # don't recreate table if already exists
+for i in range(0, len(industries_u)):
 # insert item into table
-#	stmt = insert(union_industries).values(iid=i+50, name = industries_u[i], tot_employees_19 = union_data[i][0], union_members_19 = union_data[i][1], union_members_percent_19 = union_data[i][2], union_rep_19 = union_data[i][3], union_rep_percent_19 = union_data[i][4], tot_employees_20 = union_data[i][5], union_members_20 = union_data[i][6], union_members_percent_20 = union_data[i][7], union_rep_20 = union_data[i][8], union_rep_percent_20 = union_data[i][9])
-#
-#	conn = engine.connect()
-#	result = conn.execute(stmt)
-#	session.commit()
+	stmt = insert(union_industries).values(iid=i+50, name = industries_u[i], tot_employees_19 = union_data[i][0], union_members_19 = union_data[i][1], union_members_percent_19 = union_data[i][2], union_rep_19 = union_data[i][3], union_rep_percent_19 = union_data[i][4], tot_employees_20 = union_data[i][5], union_members_20 = union_data[i][6], union_members_percent_20 = union_data[i][7], union_rep_20 = union_data[i][8], union_rep_percent_20 = union_data[i][9])
+
+	conn = engine.connect()
+	result = conn.execute(stmt)
+	session.commit()
 
 race_gender_industries = Table(
 	'race_gender_industries', meta,
@@ -162,14 +153,14 @@ race_gender_industries = Table(
 	Column('perc_asian', Float, nullable=True),
 	Column('perc_hisp_latino', Float, nullable=True),
 )
-#race_gender_industries.create(engine, checkfirst=True)
+race_gender_industries.create(engine, checkfirst=True)
 
-#for i in range(0, len(industries_rg)):
-#	stmt = insert(race_gender_industries).values(iid= 100+i, name=industries_rg[i], tot_employees=rg_data[i][0], perc_women=rg_data[i][1], perc_white=rg_data[i][2], perc_black=rg_data[i][3], perc_asian=rg_data[i][4], perc_hisp_latino=rg_data[i][5])
-#
-#	conn = engine.connect()
-#	result = conn.execute(stmt)
-#	session.commit()
+for i in range(0, len(industries_rg)):
+	stmt = insert(race_gender_industries).values(iid= 100+i, name=industries_rg[i], tot_employees=rg_data[i][0], perc_women=rg_data[i][1], perc_white=rg_data[i][2], perc_black=rg_data[i][3], perc_asian=rg_data[i][4], perc_hisp_latino=rg_data[i][5])
+
+	conn = engine.connect()
+	result = conn.execute(stmt)
+	session.commit()
 
 
 salary_info = Table(
@@ -209,7 +200,7 @@ for i in range(0, len(salary_data)):
 		mean_wage = None
 
 	try:
-		annual_mean = float(tmp[8])
+		annual_mean = int(tmp[8])
 	except:
 		annual_mean = None
 	rse_mean = float(tmp[9])
@@ -220,4 +211,23 @@ for i in range(0, len(salary_data)):
 	result = conn.execute(stmt)
 	session.commit()
 
-# Sample queries
+print("Tables created. Now running three sample queries. Here are their results:")
+
+##################
+# SAMPLE QUERIES #
+##################
+
+from sqlalchemy import func
+
+# find the number of occupations with an annual mean salary of over 50k a year
+s1 = session.query(func.count(salary_info.c.oid)).filter(salary_info.c.annual_mean_wage >= 50000.0).scalar()
+print("Number of occupations with salary >50k:", s1)
+
+# find 10 industries with the most women
+s2 = session.query(race_gender_industries.c.name).order_by(race_gender_industries.c.perc_women.desc()).limit(10).all()
+print("Industries with the most women:", s2)
+
+# find occupations and industries where union density is growing (percent 2020 members > 2019 members)
+s3 = session.query(union_industries.c.name, union_industries.c.union_members_percent_19, union_industries.c.union_members_percent_20).filter(union_industries.c.union_members_percent_19 < union_industries.c.union_members_percent_20).all()
+print("Industries where union density grew from 2019 to 2020:", s3)
+
