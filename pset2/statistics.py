@@ -1,15 +1,14 @@
 # this script scrapes statistics from several sources to populate my ethics database
 
 import requests
-import time
 from bs4 import BeautifulSoup as bs
 
-
-f = open("union_table.txt", "w")
 
 ####################
 # UNION MEMBERSHIP #
 ####################
+
+f = open("union_table.txt", "w")
 
 # read table
 union_data = requests.get(url = 'https://www.bls.gov/news.release/union2.t03.htm').text
@@ -20,25 +19,24 @@ soup = bs(union_data, "html.parser")
 # find industries & numbers
 sep = soup.find("p", string="INDUSTRY")
 
-industries = sep.find_all_next("p", ["sub0", "sub1", "sub2","sub3"])
+industries_u = sep.find_all_next("p", ["sub0", "sub1", "sub2","sub3"])
 
 # remove tags
-for i in range(len(industries)):
-	industries[i] = industries[i].get_text()
+for i in range(len(industries_u)):
+	industries_u[i] = industries_u[i].get_text()
 
 numbers = sep.find_all_next("span", "datavalue")
-
-# not sure if this will work, could also remove manually
-#industries.find_all_parents().find_all_siblings("span", "datavalue")
 
 # remove tags and turn into floats
 for i in range(0, len(numbers)):
 	num = numbers[i].get_text()
 	numbers[i] = float(num.replace(',',''))
 
-# write to file for further parsing later
-for i in range(0, len(industries)):
-	out = industries[i] + " " + str(numbers[i*10:i*10+9]) + "\n"
+# write to file and format for insertion into db
+union_data = []
+for i in range(0, len(industries_u)):
+	out = industries_u[i] + " " + str(numbers[i*10:(i+1)*10]) + "\n"
+	union_data.append(numbers[i*10:(i+1)*10])
 	f.write(out)
 f.close()
 
@@ -67,8 +65,11 @@ for i in range(0, len(industries_rg)):
 	industries_rg[i] = industries_rg[i].get_text()
 
 # remove text tags and write to file
+rg_data = []
+
 for i in range(0, len(industries_rg)):
-	out = industries_rg[i] + " " + str(numbers_rg[i*6:i*6+5]) + "\n"
+	out = industries_rg[i] + " " + str(numbers_rg[i*6:(i+1)*6]) + "\n"
+	rg_data.append(numbers_rg[i*6:(i+1)*6])
 	f.write(out)
 
 ##########
@@ -87,7 +88,85 @@ for i in range(0, len(occupations)):
 	for j in range(0, len(temp)):
 		temp[j] = temp[j].get_text()
 	salary_data.append(temp)
-
-print(salary_data)
-
 f.close()
+
+
+#################
+# CREATE TABLES #
+#################
+from sqlalchemy import func, create_engine, insert
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import Table, Column, Integer, String, MetaData, Float
+import uuid
+
+engine = create_engine('mysql+pymysql://alexa:Hello123%21%40%23@localhost:3306/pset2')
+Session = sessionmaker(bind=engine)
+session = Session()
+
+meta = MetaData()
+
+union_industries = Table(
+	'union_industries', meta,
+	Column('iid', Integer, primary_key = True),
+	Column('name', String(100)),
+	Column('tot_employees_19', Integer),
+	Column('union_members_19', Integer),
+	Column('union_members_percent_19', Float),
+	Column('union_rep_19', Integer),
+	Column('union_rep_percent_19', Float),
+
+	Column('tot_employees_20', Integer),
+	Column('union_members_20', Integer),
+	Column('union_members_percent_20', Float),
+	Column('union_rep_20', Integer),
+	Column('union_rep_percent_20', Float),
+)
+
+union_industries.create(engine, checkfirst=True)
+
+#with engine.connect() as conn:
+for i in range(0, len(industries_u)):
+# insert item into table
+	print(i)
+	stmt = insert(union_industries).values(iid=i+50, name = industries_u[i], tot_employees_19 = union_data[i][0], union_members_19 = union_data[i][1], union_members_percent_19 = union_data[i][2], union_rep_19 = union_data[i][3], union_rep_percent_19 = union_data[i][4], tot_employees_20 = union_data[i][5], union_members_20 = union_data[i][6], union_members_percent_20 = union_data[i][7], union_rep_20 = union_data[i][8], union_rep_percent_20 = union_data[i][9])
+
+	conn = engine.connect()
+	result = conn.execute(stmt)
+	session.commit()
+
+#race_gender_industries = Table(
+#	'race_gender_industries', meta,
+#	Column('iid', Integer, primary_key=True),
+#	Column('name', String),
+#	Column('total_employees', Integer),
+#	Column('percent_women', Float),
+#	Column('percent_white', Float),
+#	Column('percent_black', Float),
+#	Column('percent_asian', Float),
+#	Column('percent_hisp_latino', Float),
+#)
+
+#meta.create_all(engine)
+
+#salary_info = Table(
+#	'salary_info', meta,
+#	Column('oid', String, primary_key=True),
+#	Column('title', String),
+#	Column('level', String),
+#	Column('total_employees', Integer),
+#	Column('rse', Float),
+#	Column('emp_per_1000_jobs', Float),
+#	Column('med_hourly_wage', Float),
+#	Column('mean_hourly_wage', Float)
+#)
+
+#meta.create_all(engine)
+
+
+
+
+# Insert records
+
+
+
+# Sample queries
