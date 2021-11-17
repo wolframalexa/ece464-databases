@@ -85,17 +85,28 @@ salary_data = requests.get(url = "https://www.bls.gov/oes/current/oes_nat.htm").
 
 salary_soup = bs(salary_data, 'html.parser')
 
-occupations = salary_soup.find_all("table", "display")
+occupations = salary_soup.find("table", {"class": ["display", "sortable_datatable", "fixed-headers", "dataTable", "no-footer"]}) # find main datatable
+body = occupations.find("tbody")
+data = body.find_all("tr")
 salary_data = []
-temp = occupations[i].find_all("tr")
 
-# TODO: fix this so I get a nice table out of it
-for i in range(0, temp):
-	for j in range(0, len(temp)):
-		temp[j] = temp[j].get_text()
-	salary_data.append(temp)
+# extract datapoints & clean data of tags
+# TODO: clean of $, , and %
+for i in range(0, len(data)):
+	tmp = data[i].find_all("td")
+
+	for j in range(0, len(tmp)):
+		value = tmp[j].get_text()
+		value = value.replace('$','')
+		value = value.replace('%','')
+		value = value.replace(',','')
+		if (value.count('(') > 0):
+			value = None
+		tmp[j] = value
+
+	salary_data.append(tmp)
 #	f.write(temp)
-print("salary_data length", len(salary_data))
+print(salary_data[0:3])
 f.close()
 
 
@@ -164,29 +175,49 @@ race_gender_industries = Table(
 salary_info = Table(
 	'salary_info', meta,
 	Column('oid', String(7), primary_key=True),
-	Column('name', String(60)),
+	Column('name', String(200)),
 	Column('level', String(10)),
 	Column('tot_employees', Integer),
 	Column('rse', Float),
 	Column('emp_per_1000_jobs', Float),
 	Column('med_hourly_wage', Float),
-	Column('mean_hourly_wage', Float)
+	Column('mean_hourly_wage', Float),
+	Column('annual_mean_wage', Float),
+	Column('rse_mean_wage', Float)
 )
 
 salary_info.create(engine, checkfirst=True)
 
 for i in range(0, len(salary_data)):
-	print(salary_data[i])
-	print(i)
-#	stmt = insert(salary_info).values(oid = salary_data[i][0], name=salary_data[i][1], level=salary_data[i][2], tot_employees=salary_data[i][3], rse=salary_data[i][4], emp_per_1000_jobs = salary_data[i][5], med_hourly_wage=salary_data[i][6], mean_hourly_wage = salary_data[i][7])
+	tmp = salary_data[i]
 
-#	conn = engine.connect()
-#	result = conn.execute(stmt)
-#	session.commit()
+	# enforce datatypes, when floats are none
+	try:
+		num_emp = int(tmp[3])
+		rse_emp = float(tmp[4])
+		per_1000 = float(tmp[5])
+	except:
+		num_emp = None
+		rse_emp = None
+		per_1000 = None
 
+	try:
+		med_wage = float(tmp[6])
+		mean_wage = float(tmp[7])
+	except:
+		med_wage = None
+		mean_wage = None
 
+	try:
+		annual_mean = float(tmp[8])
+	except:
+		annual_mean = None
+	rse_mean = float(tmp[9])
 
+	stmt = insert(salary_info).values(oid = tmp[0], name=tmp[1], level=tmp[2], tot_employees=num_emp, rse=rse_emp, emp_per_1000_jobs = per_1000, med_hourly_wage=med_wage, mean_hourly_wage = mean_wage, annual_mean_wage = annual_mean, rse_mean_wage = rse_mean)
 
-
+	conn = engine.connect()
+	result = conn.execute(stmt)
+	session.commit()
 
 # Sample queries
