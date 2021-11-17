@@ -1,6 +1,7 @@
 # this script scrapes statistics from several sources to populate my ethics database
 
 import requests
+import math
 from bs4 import BeautifulSoup as bs
 
 
@@ -49,7 +50,7 @@ f = open("race_gender_table.txt", "w")
 # open race and gender makeup page
 race_gender_data = requests.get(url = "https://www.bls.gov/cps/cpsaat18.htm").text
 
-# read table
+# read table: data is all from 2020
 rg_soup = bs(race_gender_data, 'html.parser')
 industries_rg = rg_soup.find_all("p", ["sub0", "sub1", "sub2", "sub3"])
 
@@ -59,7 +60,10 @@ numbers_rg = rg_soup.find_all("span", "datavalue")
 for i in range(0, len(numbers_rg)):
 	num = numbers_rg[i].get_text()
 	num = num.replace("-","NaN")
-	numbers_rg[i] = float(num.replace(',',''))
+	num = float(num.replace(',',''))
+	if math.isnan(num):
+		num = None
+	numbers_rg[i] = num
 
 for i in range(0, len(industries_rg)):
 	industries_rg[i] = industries_rg[i].get_text()
@@ -81,13 +85,17 @@ salary_data = requests.get(url = "https://www.bls.gov/oes/current/oes_nat.htm").
 
 salary_soup = bs(salary_data, 'html.parser')
 
-occupations = salary_soup.find_all("tr")
+occupations = salary_soup.find_all("table", "display")
 salary_data = []
-for i in range(0, len(occupations)):
-	temp = occupations[i].find_all("td")
+temp = occupations[i].find_all("tr")
+
+# TODO: fix this so I get a nice table out of it
+for i in range(0, temp):
 	for j in range(0, len(temp)):
 		temp[j] = temp[j].get_text()
 	salary_data.append(temp)
+#	f.write(temp)
+print("salary_data length", len(salary_data))
 f.close()
 
 
@@ -122,50 +130,62 @@ union_industries = Table(
 	Column('union_rep_percent_20', Float),
 )
 
-union_industries.create(engine, checkfirst=True)
+#union_industries.create(engine, checkfirst=True) # don't recreate table if already exists
 
-#with engine.connect() as conn:
-for i in range(0, len(industries_u)):
+#for i in range(0, len(industries_u)):
 # insert item into table
+#	stmt = insert(union_industries).values(iid=i+50, name = industries_u[i], tot_employees_19 = union_data[i][0], union_members_19 = union_data[i][1], union_members_percent_19 = union_data[i][2], union_rep_19 = union_data[i][3], union_rep_percent_19 = union_data[i][4], tot_employees_20 = union_data[i][5], union_members_20 = union_data[i][6], union_members_percent_20 = union_data[i][7], union_rep_20 = union_data[i][8], union_rep_percent_20 = union_data[i][9])
+#
+#	conn = engine.connect()
+#	result = conn.execute(stmt)
+#	session.commit()
+
+race_gender_industries = Table(
+	'race_gender_industries', meta,
+	Column('iid', Integer, primary_key=True),
+	Column('name', String(200)),
+	Column('tot_employees', Integer),
+	Column('perc_women', Float, nullable=True),
+	Column('perc_white', Float, nullable=True),
+	Column('perc_black', Float, nullable=True),
+	Column('perc_asian', Float, nullable=True),
+	Column('perc_hisp_latino', Float, nullable=True),
+)
+#race_gender_industries.create(engine, checkfirst=True)
+
+#for i in range(0, len(industries_rg)):
+#	stmt = insert(race_gender_industries).values(iid= 100+i, name=industries_rg[i], tot_employees=rg_data[i][0], perc_women=rg_data[i][1], perc_white=rg_data[i][2], perc_black=rg_data[i][3], perc_asian=rg_data[i][4], perc_hisp_latino=rg_data[i][5])
+#
+#	conn = engine.connect()
+#	result = conn.execute(stmt)
+#	session.commit()
+
+
+salary_info = Table(
+	'salary_info', meta,
+	Column('oid', String(7), primary_key=True),
+	Column('name', String(60)),
+	Column('level', String(10)),
+	Column('tot_employees', Integer),
+	Column('rse', Float),
+	Column('emp_per_1000_jobs', Float),
+	Column('med_hourly_wage', Float),
+	Column('mean_hourly_wage', Float)
+)
+
+salary_info.create(engine, checkfirst=True)
+
+for i in range(0, len(salary_data)):
+	print(salary_data[i])
 	print(i)
-	stmt = insert(union_industries).values(iid=i+50, name = industries_u[i], tot_employees_19 = union_data[i][0], union_members_19 = union_data[i][1], union_members_percent_19 = union_data[i][2], union_rep_19 = union_data[i][3], union_rep_percent_19 = union_data[i][4], tot_employees_20 = union_data[i][5], union_members_20 = union_data[i][6], union_members_percent_20 = union_data[i][7], union_rep_20 = union_data[i][8], union_rep_percent_20 = union_data[i][9])
+#	stmt = insert(salary_info).values(oid = salary_data[i][0], name=salary_data[i][1], level=salary_data[i][2], tot_employees=salary_data[i][3], rse=salary_data[i][4], emp_per_1000_jobs = salary_data[i][5], med_hourly_wage=salary_data[i][6], mean_hourly_wage = salary_data[i][7])
 
-	conn = engine.connect()
-	result = conn.execute(stmt)
-	session.commit()
-
-#race_gender_industries = Table(
-#	'race_gender_industries', meta,
-#	Column('iid', Integer, primary_key=True),
-#	Column('name', String),
-#	Column('total_employees', Integer),
-#	Column('percent_women', Float),
-#	Column('percent_white', Float),
-#	Column('percent_black', Float),
-#	Column('percent_asian', Float),
-#	Column('percent_hisp_latino', Float),
-#)
-
-#meta.create_all(engine)
-
-#salary_info = Table(
-#	'salary_info', meta,
-#	Column('oid', String, primary_key=True),
-#	Column('title', String),
-#	Column('level', String),
-#	Column('total_employees', Integer),
-#	Column('rse', Float),
-#	Column('emp_per_1000_jobs', Float),
-#	Column('med_hourly_wage', Float),
-#	Column('mean_hourly_wage', Float)
-#)
-
-#meta.create_all(engine)
+#	conn = engine.connect()
+#	result = conn.execute(stmt)
+#	session.commit()
 
 
 
-
-# Insert records
 
 
 
